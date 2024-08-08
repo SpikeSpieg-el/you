@@ -1,9 +1,19 @@
 const API_KEY = 'AIzaSyAIuRRH4V1aofNSGCV1DLTqAkQ5Jtrm-tk'; // Замените на свой ключ API
 const SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
 
+// Загружаем сохранённый запрос при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    const savedQuery = localStorage.getItem('searchQuery');
+    if (savedQuery) {
+        document.getElementById('query').value = savedQuery;
+        searchYouTube(savedQuery);
+    }
+});
+
 document.getElementById('search-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const query = document.getElementById('query').value;
+    localStorage.setItem('searchQuery', query);
     searchYouTube(query);
 });
 
