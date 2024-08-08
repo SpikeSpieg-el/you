@@ -40,7 +40,24 @@
     </style>
 </head>
 <body>
-    <iframe src="https://www.youtube.com/embed/{{ video_id }}" frameborder="0" allowfullscreen></iframe>
-    <a href="{{ url_for('index', query=query) }}">Назад к поиску</a>
+    <div id="video-container">
+        <iframe id="video" frameborder="0" allowfullscreen></iframe>
+        <a href="index.html">Back to search</a>
+    </div>
+
+    <script>
+        function getParameterByName(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoId = getParameterByName('video_id');
+            if (videoId) {
+                const iframe = document.getElementById('video');
+                iframe.src = `https://www.youtube.com/embed/${videoId}`;
+            }
+        });
+    </script>
 </body>
 </html>

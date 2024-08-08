@@ -31,7 +31,7 @@ function displayResults(videos) {
         const videoElement = document.createElement('div');
         videoElement.className = 'video-container';
         videoElement.innerHTML = `
-            <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank">
+            <a href="video.html?video_id=${videoId}" class="video-link">
                 <img src="${thumbnail}" alt="${title}">
                 <h2>${title}</h2>
                 <p class="published-at">Published on: ${publishedAt}</p>
