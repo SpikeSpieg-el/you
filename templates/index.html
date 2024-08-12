@@ -27,13 +27,13 @@
                 <button class="view-btn" data-view="list">List</button>
                 <button class="view-btn" data-view="grid">Grid</button>
                 <button class="view-btn" data-view="table">Table</button>
-                <button class="view-btn" data-view="icons">Icons</button>
-                <label>
-                    <input type="checkbox" id="files-only"> Files Only
-                </label>
+                <div class="toggle-files-only">
+                    <input type="checkbox" id="files-only" />
+                    <label for="files-only">Show Files Only</label>
+                </div>
             </div>
         </div>
-        <div id="file-browser-container" class="file-browser-container">
+        <div id="file-browser-container" class="file-browser-container list">
             <ul id="file-browser" class="file-browser"></ul>
         </div>
     </div>
@@ -45,98 +45,96 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileBrowser = document.getElementById('file-browser');
-        const fileBrowserContainer = document.getElementById('file-browser-container');
-        const filesOnlyCheckbox = document.getElementById('files-only');
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileBrowser = document.getElementById('file-browser');
+            const fileBrowserContainer = document.getElementById('file-browser-container');
+            const filesOnlyCheckbox = document.getElementById('files-only');
 
-        function fetchFiles(sortBy, sortOrder, searchQuery, filesOnly) {
-            let url = `/api/contents?sort_by=${sortBy || ''}&sort_order=${sortOrder || 'asc'}&search_query=${searchQuery || ''}&files_only=${filesOnly || false}`;
-            fetch(url)
-                .then(response => response.json())
-                .then(data => renderTree(data, fileBrowser))
-                .catch(error => console.error('Error fetching file contents:', error));
-        }
+            function fetchFiles(sortBy, sortOrder, searchQuery, filesOnly) {
+                let url = `/api/contents?sort_by=${sortBy || ''}&sort_order=${sortOrder || 'asc'}&search_query=${searchQuery || ''}&files_only=${filesOnly ? 'true' : 'false'}`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => renderTree(data, fileBrowser))
+                    .catch(error => console.error('Error fetching file contents:', error));
+            }
 
-        function formatFileSize(sizeInBytes) {
-            if (sizeInBytes === undefined) return '';
-            let sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
-            return `${sizeInMB} MB`;
-        }
+            function formatFileSize(sizeInBytes) {
+                if (sizeInBytes === undefined) return '';
+                let sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
+                return `${sizeInMB} MB`;
+            }
 
-        function renderTree(nodes, parentElement) {
-            parentElement.innerHTML = ''; // Clear previous content
-            nodes.forEach(node => {
-                let li = document.createElement('li');
-                li.classList.add('file-item');
-                let fileInfo = document.createElement('span');
-                fileInfo.classList.add('file-info');
-                if (node.type === 'directory') {
-                    let span = document.createElement('span');
-                    span.textContent = node.name;
-                    span.className = 'directory';
-                    span.addEventListener('click', function() {
-                        let content = li.querySelector('.directory-content');
-                        if (content) {
-                            content.style.display = (content.style.display === 'none' || content.style.display === '') ? 'block' : 'none';
-                        }
-                    });
-                    li.appendChild(span);
-                    let ul = document.createElement('ul');
-                    ul.className = 'directory-content';
-                    renderTree(node.children, ul);
-                    li.appendChild(ul);
-                } else {
-                    let a = document.createElement('a');
-                    a.href = '#';
-                    a.textContent = node.name;
-                    a.addEventListener('click', function(event) {
-                        event.preventDefault(); // Prevent default link behavior
-                        if (node.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
-                            showPopup(`/files/${node.path}`);
-                        } else {
-                            console.error('Unsupported file type:', node.name);
-                        }
-                    });
-                    fileInfo.textContent = ` ${formatFileSize(node.size)} ${node.resolution ? `(${node.resolution})` : ''}`;
-                    li.appendChild(a);
-                    li.appendChild(fileInfo);
-                }
-                parentElement.appendChild(li);
+            function renderTree(nodes, parentElement) {
+                parentElement.innerHTML = ''; // Clear previous content
+                nodes.forEach(node => {
+                    let li = document.createElement('li');
+                    li.classList.add('file-item');
+                    let fileInfo = document.createElement('span');
+                    fileInfo.classList.add('file-info');
+                    if (node.type === 'directory') {
+                        let span = document.createElement('span');
+                        span.textContent = node.name;
+                        span.className = 'directory';
+                        span.addEventListener('click', function() {
+                            let content = li.querySelector('.directory-content');
+                            if (content) {
+                                content.style.display = (content.style.display === 'none' || content.style.display === '') ? 'block' : 'none';
+                            }
+                        });
+                        li.appendChild(span);
+                        let ul = document.createElement('ul');
+                        ul.className = 'directory-content';
+                        renderTree(node.children, ul);
+                        li.appendChild(ul);
+                    } else {
+                        let a = document.createElement('a');
+                        a.href = '#';
+                        a.textContent = node.name;
+                        a.addEventListener('click', function(event) {
+                            event.preventDefault(); // Prevent default link behavior
+                            if (node.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                                showPopup(`/files/${node.path}`);
+                            } else {
+                                console.error('Unsupported file type:', node.name);
+                            }
+                        });
+                        fileInfo.textContent = ` ${formatFileSize(node.size)} ${node.resolution ? `(${node.resolution})` : ''}`;
+                        li.appendChild(a);
+                        li.appendChild(fileInfo);
+                    }
+                    parentElement.appendChild(li);
+                });
+            }
+
+            function showPopup(imageUrl) {
+                let popup = document.getElementById('popup');
+                let popupImage = document.getElementById('popup-image');
+                popupImage.src = imageUrl;
+                popup.style.display = 'flex'; // Show the popup
+            }
+
+            document.getElementById('popup-close').addEventListener('click', function() {
+                document.getElementById('popup').style.display = 'none'; // Hide the popup
             });
-        }
 
-        function showPopup(imageUrl) {
-            let popup = document.getElementById('popup');
-            let popupImage = document.getElementById('popup-image');
-            popupImage.src = imageUrl;
-            popup.style.display = 'flex'; // Show the popup
-        }
-
-        document.getElementById('popup-close').addEventListener('click', function() {
-            document.getElementById('popup').style.display = 'none'; // Hide the popup
-        });
-
-        document.getElementById('apply-filters').addEventListener('click', function() {
-            let sortBy = document.getElementById('sort-select').value;
-            let sortOrder = document.getElementById('sort-order').value;
-            let searchQuery = document.getElementById('search-input').value;
-            let filesOnly = filesOnlyCheckbox.checked;
-            fetchFiles(sortBy, sortOrder, searchQuery, filesOnly);
-        });
-
-        document.querySelectorAll('.view-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                let viewType = this.getAttribute('data-view');
-                fileBrowserContainer.className = `file-browser-container ${viewType}`;
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                let sortBy = document.getElementById('sort-select').value;
+                let sortOrder = document.getElementById('sort-order').value;
+                let searchQuery = document.getElementById('search-input').value;
+                let filesOnly = filesOnlyCheckbox.checked;
+                fetchFiles(sortBy, sortOrder, searchQuery, filesOnly);
             });
+
+            document.querySelectorAll('.view-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    let viewType = this.getAttribute('data-view');
+                    fileBrowserContainer.className = `file-browser-container ${viewType}`;
+                });
+            });
+
+            // Initial fetch without filters
+            fetchFiles();
         });
-
-        // Initial fetch without filters
-        fetchFiles();
-    });
-
-
     </script>
 </body>
 </html>
