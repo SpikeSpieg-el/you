@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 100%;
+            margin: auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        img.thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .folder {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .folder-content {
+            display: none;
+            padding-left: 20px;
+        }
+        .folder-content.visible {
+            display: table-row-group;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        .modal.show {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File List</h1>
+        <table id="fileTable">
+            <thead>
+                <tr>
+                    <th>Thumbnail</th>
+                    <th>Name</th>
+                    <th>Size (MB)</th>
+                    <th>Last Modified</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- File rows will be inserted here -->
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Modal for image preview -->
+    <div id="modal" class="modal">
+        <img id="modalImage" src="" alt="Image preview">
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('http://localhost:5000/files')
+                .then(response => response.json())
+                .then(files => {
+                    const tableBody = document.querySelector('#fileTable tbody');
+                    const filesByFolder = {};
+
+                    files.forEach(file => {
+                        const folderPath = file.path.substring(0, file.path.lastIndexOf('\\')) || 'root';
+                        if (!filesByFolder[folderPath]) {
+                            filesByFolder[folderPath] = [];
+                        }
+                        filesByFolder[folderPath].push(file);
+                    });
+
+                    const createRow = (file, isImage) => {
+                        const date = new Date(file.mtime * 1000).toLocaleString();
+                        const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                        return `
+                            <tr>
+                                <td>${isImage ? `<img src="http://localhost:5000/files/${file.path}" class="thumbnail" alt="Thumbnail">` : ''}</td>
+                                <td><a href="http://localhost:5000/files/${file.path}" target="_blank">${file.name}</a></td>
+                                <td>${sizeInMB} MB</td>
+                                <td>${date}</td>
+                            </tr>
+                        `;
+                    };
+
+                    const createFolderRow = (folderName, files) => {
+                        const folderId = `folder-${folderName.replace(/[^a-zA-Z0-9]/g, '')}`;
+                        const rows = files.map(file => {
+                            const isImage = file.name.endsWith('.png') || file.name.endsWith('.jpg');
+                            return createRow(file, isImage);
+                        }).join('');
+
+                        return `
+                            <tr class="folder" id="${folderId}">
+                                <td colspan="4">${folderName}</td>
+                            </tr>
+                            <tr class="folder-content" id="${folderId}-content">
+                                <td colspan="4">
+                                    <table>
+                                        <tbody>${rows}</tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        `;
+                    };
+
+                    for (const [folderPath, files] of Object.entries(filesByFolder)) {
+                        const folderName = folderPath === 'root' ? 'Root' : folderPath.split('\\').pop();
+                        const rows = createFolderRow(folderName, files);
+                        tableBody.innerHTML += rows;
+                    }
+
+                    document.querySelectorAll('.thumbnail').forEach(img => {
+                        img.addEventListener('click', function() {
+                            const modal = document.getElementById('modal');
+                            const modalImage = document.getElementById('modalImage');
+                            modalImage.src = this.src;
+                            modal.classList.add('show');
+                        });
+                    });
+
+                    document.querySelectorAll('.folder').forEach(folder => {
+                        folder.addEventListener('click', function() {
+                            const contentId = this.id + '-content';
+                            const content = document.getElementById(contentId);
+                            content.classList.toggle('visible');
+                        });
+                    });
+
+                    document.getElementById('modal').addEventListener('click', function() {
+                        this.classList.remove('show');
+                    });
+                });
+        });
+    </script>
+</body>
+</html>
